@@ -180,7 +180,7 @@ func TestRunResticBackedCommands(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(out.String(), "- Duration:") {
+	if !strings.Contains(out.String(), "- duration:") {
 		t.Fatalf("expected backup output to include duration, got %q", out.String())
 	}
 }
@@ -296,7 +296,7 @@ func TestRunUIAndPasswordCommands(t *testing.T) {
 	if err := Run([]string{"ui", "serve", "--addr", "127.0.0.1:-1"}, &out, &errOut); err == nil {
 		t.Fatal("expected ui serve with invalid addr to fail")
 	}
-	if !strings.Contains(out.String(), "UI listening on http://127.0.0.1:-1") {
+	if !strings.Contains(out.String(), "ui listening on http://127.0.0.1:-1") {
 		t.Fatalf("unexpected ui output: %q", out.String())
 	}
 

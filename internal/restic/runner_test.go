@@ -351,11 +351,11 @@ func TestRunnerCommandExecutionPaths(t *testing.T) {
 		t.Fatalf("RunInit output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunBackup(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Backup Completed")) {
+	if err := runner.RunBackup(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("backup completed")) {
 		t.Fatalf("RunBackup output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunBackupWithOptions(context.Background(), repo, BackupRunOptions{}, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Backup Completed")) {
+	if err := runner.RunBackupWithOptions(context.Background(), repo, BackupRunOptions{}, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("backup completed")) {
 		t.Fatalf("RunBackupWithOptions output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
@@ -373,19 +373,19 @@ func TestRunnerCommandExecutionPaths(t *testing.T) {
 		t.Fatalf("RunSnapshots output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunCheck(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Check Summary")) {
+	if err := runner.RunCheck(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("check summary")) {
 		t.Fatalf("RunCheck output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunStats(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Repository Stats")) {
+	if err := runner.RunStats(context.Background(), repo, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("repository stats")) {
 		t.Fatalf("RunStats output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunRestoreWithOptions(context.Background(), repo, RestoreRunOptions{Snapshot: "latest", Target: `C:\restore`}, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Restore Summary")) {
+	if err := runner.RunRestoreWithOptions(context.Background(), repo, RestoreRunOptions{Snapshot: "latest", Target: `C:\restore`}, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("restore summary")) {
 		t.Fatalf("RunRestoreWithOptions output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
-	if err := runner.RunRestore(context.Background(), repo, "latest", `C:\restore`, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("Restore Summary")) {
+	if err := runner.RunRestore(context.Background(), repo, "latest", `C:\restore`, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte("restore summary")) {
 		t.Fatalf("RunRestore output = %q, err=%v", out.String(), err)
 	}
 	out.Reset()
