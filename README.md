@@ -1,0 +1,124 @@
+# Rist
+
+Rist is a Windows-focused, deterministic CLI wrapper around restic with an optional local Web UI.
+
+For scripting, Rist exposes JSON-first commands that use parsed restic JSON output as the source of truth instead of raw terminal text.
+
+## Security Model
+
+- Passwords are stored in the OS credential backend.
+- Config contains no secrets.
+- restic is always called with `--password-command "<rist-exe> pw <id>"`.
+- UI orchestrates CLI calls and never executes restic directly.
+
+## Credential Backends
+
+- Windows: Credential Manager (`wincred`)
+- Linux: Secret Service/libsecret via keyring backend
+- macOS: Keychain Services via keyring backend
+- Other OSes: no credential backend (unsupported)
+
+## Config
+
+- Path: `%APPDATA%/rist/config.yaml`
+- Versioned YAML schema.
+- Folder backends only: absolute local paths or UNC paths.
+
+## Quick Start
+
+1. Build the CLI:
+    - `go build -o rist.exe ./cmd/rist`
+2. Initialize config:
+    - `./rist.exe config init`
+3. Add repo:
+    - `./rist.exe repo add --id main --path "C:\\Backups\\restic"`
+4. Store password from stdin:
+    - `"your-password" | ./rist.exe pw set main`
+5. Initialize restic repo:
+    - `./rist.exe repo init main`
+6. Add include paths and run backup:
+    - `./rist.exe repo include add main "C:\\Users\\me\\Documents"`
+    - `./rist.exe backup run main`
+7. Preview actions without changing the repository:
+    - `./rist.exe backup run main --dry-run`
+    - `./rist.exe maintenance forget main --keep-last 5 --dry-run`
+    - `./rist.exe restore run main --snapshot latest --target "C:\restore" --dry-run`
+8. Consume structured JSON in scripts:
+    - `./rist.exe json snapshots main`
+    - `./rist.exe json maintenance stats main`
+    - `./rist.exe json backup run main --dry-run`
+
+## Layout
+
+- CLI entrypoint: `./cmd/rist`
+- Internal packages: `./internal/*`
+- UI template: `./internal/ui/page.html`
+
+## Core Commands
+
+- `rist config init`
+- `rist config validate`
+- `rist config migrate`
+- `rist config show`
+- `rist repo add --id <id> --path <path> [--password-target <target>]`
+- `rist repo remove <id>`
+- `rist repo list`
+- `rist repo init <id>`
+- `rist repo include add <id> <path>`
+- `rist repo include remove <id> <path>`
+- `rist repo include list <id>`
+- `rist repo exclude add <id> <path>`
+- `rist repo exclude remove <id> <path>`
+- `rist repo exclude list <id>`
+- `rist repo options show <id>`
+- `rist repo options set <id> [--one-file-system=true|false] [--verbose=true|false]`
+- `rist pw set <id>` (password from stdin)
+- `rist pw <id>`
+- `rist pw clear <id>`
+- `rist backup run <id> [--dry-run]`
+- `rist snapshots <id>`
+- `rist maintenance check <id>`
+- `rist maintenance prune <id>`
+- `rist maintenance stats <id>`
+- `rist maintenance forget <id> [--keep-* N] [--prune] [--dry-run]`
+- `rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]`
+- `rist json repo init <id>`
+- `rist json backup run <id> [--dry-run]`
+- `rist json snapshots <id>`
+- `rist json maintenance check <id>`
+- `rist json maintenance stats <id>`
+- `rist json restore run <id> --snapshot <snapshot> --target <path> [--dry-run]`
+- `rist ui serve [--addr 127.0.0.1:8787]`
+
+## JSON Scripting
+
+- `rist json ...` commands emit structured JSON derived from restic `--json` output.
+- Current JSON surfaces cover `repo init`, `backup run`, `snapshots`, `maintenance check`, `maintenance stats`, and `restore run`.
+- Dry-run is wrapped for `backup run`, `maintenance forget`, and `restore run`, including the JSON backup and restore entrypoints.
+- Human-readable commands still exist, but the JSON subcommands are the stable interface for automation.
+
+## Build
+
+- `go test ./...`
+- `go build ./...`
+
+## Packaging
+
+- Local build script: `./scripts/build.ps1`
+- Release artifact script: `./scripts/release.ps1 -Version v0.1.0`
+
+## Troubleshooting
+
+- `credential backend unavailable`:
+  - Linux: ensure a Secret Service backend is running and user session D-Bus is available.
+  - macOS: unlock login keychain and allow access.
+- `restic command failed (wrong-password)`:
+  - Reset password with `rist pw set <id>` and retry.
+- `restic command failed (repository-damaged)`:
+  - Run `rist maintenance check <id>` and inspect repository health.
+- Config schema/version errors:
+  - Run `rist config migrate` to normalize current schema version.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
