@@ -102,11 +102,6 @@ For scripting, Rist exposes JSON-first commands that use parsed restic JSON outp
 - `go test ./...`
 - `go build ./...`
 
-## Packaging
-
-- Local build script: `./scripts/build.ps1`
-- Release artifact script: `./scripts/release.ps1 -Version v0.1.0`
-
 ## Troubleshooting
 
 - `credential backend unavailable`:
