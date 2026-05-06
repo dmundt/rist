@@ -31,15 +31,21 @@ func Run(args []string, stdout, stderr io.Writer) (err error) {
 	case "repo":
 		return runRepo(args[1:], stdout, stderr)
 	case "backup":
-		return runBackup(args[1:], stdout, stderr)
+		return runBackupRun(args[1:], stdout, stderr)
 	case "snapshots":
 		return runSnapshots(args[1:], stdout, stderr)
-	case "maintenance":
-		return runMaintenance(args[1:], stdout, stderr)
+	case "check":
+		return runCheck(args[1:], stdout, stderr)
+	case "prune":
+		return runPrune(args[1:], stdout, stderr)
+	case "stats":
+		return runStats(args[1:], stdout, stderr)
+	case "forget":
+		return runForget(args[1:], stdout, stderr)
 	case "restore":
-		return runRestore(args[1:], stdout, stderr)
-	case "ui":
-		return runUI(args[1:], stdout)
+		return runRestoreRun(args[1:], stdout, stderr)
+	case "serve":
+		return runServe(args[1:], stdout)
 	case "pw":
 		return runPassword(args[1:], stdout)
 	default:
@@ -66,14 +72,14 @@ func printUsage(out io.Writer) {
 	fmt.Fprintln(out, "  rist repo exclude list <id>")
 	fmt.Fprintln(out, "  rist repo options show <id>")
 	fmt.Fprintln(out, "  rist repo options set <id> [--one-file-system=true|false] [--verbose=true|false]")
-	fmt.Fprintln(out, "  rist backup run <id> [--dry-run]")
+	fmt.Fprintln(out, "  rist backup <id> [--dry-run]")
 	fmt.Fprintln(out, "  rist snapshots <id>")
-	fmt.Fprintln(out, "  rist maintenance check <id>")
-	fmt.Fprintln(out, "  rist maintenance prune <id>")
-	fmt.Fprintln(out, "  rist maintenance stats <id>")
-	fmt.Fprintln(out, "  rist maintenance forget <id> [--keep-last n] [--keep-daily n] [--keep-weekly n] [--keep-monthly n] [--keep-yearly n] [--prune] [--dry-run]")
-	fmt.Fprintln(out, "  rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
-	fmt.Fprintln(out, "  rist ui serve [--addr 127.0.0.1:8787]")
+	fmt.Fprintln(out, "  rist check <id>")
+	fmt.Fprintln(out, "  rist prune <id>")
+	fmt.Fprintln(out, "  rist stats <id>")
+	fmt.Fprintln(out, "  rist forget <id> [--keep-last n] [--keep-daily n] [--keep-weekly n] [--keep-monthly n] [--keep-yearly n] [--prune] [--dry-run]")
+	fmt.Fprintln(out, "  rist restore <id> --snapshot <snapshot> --target <path> [--dry-run]")
+	fmt.Fprintln(out, "  rist serve [--addr 127.0.0.1:8787]")
 	fmt.Fprintln(out, "  rist pw <id>")
 	fmt.Fprintln(out, "  rist pw set <id>  (password from stdin)")
 	fmt.Fprintln(out, "  rist pw clear <id>")
@@ -183,19 +189,6 @@ func runRepoPathListCommand(args []string, out io.Writer, listType string) error
 	}
 }
 
-func runBackup(args []string, out, errOut io.Writer) error {
-	if len(args) == 0 {
-		return errors.New("missing backup subcommand")
-	}
-
-	switch args[0] {
-	case "run":
-		return runBackupRun(args[1:], out, errOut)
-	default:
-		return fmt.Errorf("unknown backup subcommand: %s", args[0])
-	}
-}
-
 func runSnapshots(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: rist snapshots <id>")
@@ -213,57 +206,16 @@ func runSnapshots(args []string, out, errOut io.Writer) error {
 	return runner.RunSnapshots(context.Background(), repo, out, errOut)
 }
 
-func runMaintenance(args []string, out, errOut io.Writer) error {
-	if len(args) == 0 {
-		return errors.New("missing maintenance subcommand")
+func runServe(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	addr := fs.String("addr", "127.0.0.1:8787", "listen address")
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
 
-	switch args[0] {
-	case "check":
-		return runMaintenanceCheck(args[1:], out, errOut)
-	case "prune":
-		return runMaintenancePrune(args[1:], out, errOut)
-	case "stats":
-		return runMaintenanceStats(args[1:], out, errOut)
-	case "forget":
-		return runMaintenanceForget(args[1:], out, errOut)
-	default:
-		return fmt.Errorf("unknown maintenance subcommand: %s", args[0])
-	}
-}
-
-func runRestore(args []string, out, errOut io.Writer) error {
-	if len(args) == 0 {
-		return errors.New("missing restore subcommand")
-	}
-
-	switch args[0] {
-	case "run":
-		return runRestoreRun(args[1:], out, errOut)
-	default:
-		return fmt.Errorf("unknown restore subcommand: %s", args[0])
-	}
-}
-
-func runUI(args []string, out io.Writer) error {
-	if len(args) == 0 {
-		return errors.New("missing ui subcommand")
-	}
-
-	switch args[0] {
-	case "serve":
-		fs := flag.NewFlagSet("ui serve", flag.ContinueOnError)
-		fs.SetOutput(io.Discard)
-		addr := fs.String("addr", "127.0.0.1:8787", "listen address")
-		if err := fs.Parse(args[1:]); err != nil {
-			return err
-		}
-
-		fmt.Fprintf(out, "ui listening on http://%s\n", *addr)
-		return ui.Server{Addr: *addr}.Serve()
-	default:
-		return fmt.Errorf("unknown ui subcommand: %s", args[0])
-	}
+	fmt.Fprintf(out, "serving on http://%s\n", *addr)
+	return ui.Server{Addr: *addr}.Serve()
 }
 
 func runRepoAdd(args []string, out io.Writer) error {
@@ -557,11 +509,11 @@ func listRepoPaths(repoID, listType string, out io.Writer) error {
 
 func runBackupRun(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: rist backup run <id> [--dry-run]")
+		return errors.New("usage: rist backup <id> [--dry-run]")
 	}
 	repoID := args[0]
 
-	fs := flag.NewFlagSet("backup run", flag.ContinueOnError)
+	fs := flag.NewFlagSet("backup", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	dryRun := fs.Bool("dry-run", false, "show what would be backed up without writing a snapshot")
 
@@ -569,7 +521,7 @@ func runBackupRun(args []string, out, errOut io.Writer) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: rist backup run <id> [--dry-run]")
+		return errors.New("usage: rist backup <id> [--dry-run]")
 	}
 
 	repo, err := loadRepoByID(repoID)
@@ -597,9 +549,9 @@ func runBackupRun(args []string, out, errOut io.Writer) error {
 	return nil
 }
 
-func runMaintenanceCheck(args []string, out, errOut io.Writer) error {
+func runCheck(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
-		return errors.New("usage: rist maintenance check <id>")
+		return errors.New("usage: rist check <id>")
 	}
 	repo, err := loadRepoByID(args[0])
 	if err != nil {
@@ -612,9 +564,9 @@ func runMaintenanceCheck(args []string, out, errOut io.Writer) error {
 	return runner.RunCheck(context.Background(), repo, out, errOut)
 }
 
-func runMaintenancePrune(args []string, out, errOut io.Writer) error {
+func runPrune(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
-		return errors.New("usage: rist maintenance prune <id>")
+		return errors.New("usage: rist prune <id>")
 	}
 	repo, err := loadRepoByID(args[0])
 	if err != nil {
@@ -627,9 +579,9 @@ func runMaintenancePrune(args []string, out, errOut io.Writer) error {
 	return runner.RunPrune(context.Background(), repo, out, errOut)
 }
 
-func runMaintenanceStats(args []string, out, errOut io.Writer) error {
+func runStats(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
-		return errors.New("usage: rist maintenance stats <id>")
+		return errors.New("usage: rist stats <id>")
 	}
 	repo, err := loadRepoByID(args[0])
 	if err != nil {
@@ -642,13 +594,13 @@ func runMaintenanceStats(args []string, out, errOut io.Writer) error {
 	return runner.RunStats(context.Background(), repo, out, errOut)
 }
 
-func runMaintenanceForget(args []string, out, errOut io.Writer) error {
+func runForget(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: rist maintenance forget <id> [--keep-last N] [--keep-daily N] [--keep-weekly N] [--keep-monthly N] [--keep-yearly N] [--prune] [--dry-run]")
+		return errors.New("usage: rist forget <id> [--keep-last N] [--keep-daily N] [--keep-weekly N] [--keep-monthly N] [--keep-yearly N] [--prune] [--dry-run]")
 	}
 	repoID := args[0]
 
-	fs := flag.NewFlagSet("maintenance forget", flag.ContinueOnError)
+	fs := flag.NewFlagSet("forget", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	keepLast := fs.Int("keep-last", 0, "keep last snapshots")
 	keepDaily := fs.Int("keep-daily", 0, "keep daily snapshots")
@@ -662,7 +614,7 @@ func runMaintenanceForget(args []string, out, errOut io.Writer) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: rist maintenance forget <id> [--keep-last N] [--keep-daily N] [--keep-weekly N] [--keep-monthly N] [--keep-yearly N] [--prune] [--dry-run]")
+		return errors.New("usage: rist forget <id> [--keep-last N] [--keep-daily N] [--keep-weekly N] [--keep-monthly N] [--keep-yearly N] [--prune] [--dry-run]")
 	}
 
 	repo, err := loadRepoByID(repoID)
@@ -690,11 +642,11 @@ func runMaintenanceForget(args []string, out, errOut io.Writer) error {
 
 func runRestoreRun(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
+		return errors.New("usage: rist restore <id> --snapshot <snapshot> --target <path> [--dry-run]")
 	}
 	repoID := args[0]
 
-	fs := flag.NewFlagSet("restore run", flag.ContinueOnError)
+	fs := flag.NewFlagSet("restore", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	snapshot := fs.String("snapshot", "", "snapshot id, tag, or latest")
 	target := fs.String("target", "", "restore destination path")
@@ -704,7 +656,7 @@ func runRestoreRun(args []string, out, errOut io.Writer) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
+		return errors.New("usage: rist restore <id> --snapshot <snapshot> --target <path> [--dry-run]")
 	}
 
 	repo, err := loadRepoByID(repoID)

@@ -67,7 +67,7 @@ func TestRunUsageAndConfigCommands(t *testing.T) {
 	if err := Run(nil, &out, &errOut); err != nil {
 		t.Fatalf("Run(nil) returned error: %v", err)
 	}
-	if !strings.Contains(out.String(), "rist backup run <id>") {
+	if !strings.Contains(out.String(), "rist backup <id>") {
 		t.Fatalf("usage output missing expected command: %q", out.String())
 	}
 
@@ -163,12 +163,12 @@ func TestRunResticBackedCommands(t *testing.T) {
 	commands := [][]string{
 		{"repo", "init", "main"},
 		{"snapshots", "main"},
-		{"maintenance", "check", "main"},
-		{"maintenance", "stats", "main"},
-		{"maintenance", "prune", "main"},
-		{"maintenance", "forget", "main", "--keep-last", "2", "--prune"},
-		{"restore", "run", "main", "--snapshot", "latest", "--target", `C:\restore`},
-		{"backup", "run", "main", "--dry-run"},
+		{"check", "main"},
+		{"stats", "main"},
+		{"prune", "main"},
+		{"forget", "main", "--keep-last", "2", "--prune"},
+		{"restore", "main", "--snapshot", "latest", "--target", `C:\restore`},
+		{"backup", "main", "--dry-run"},
 	}
 
 	for _, args := range commands {
@@ -237,14 +237,14 @@ func TestRunUIAndPasswordCommands(t *testing.T) {
 
 	var out bytes.Buffer
 	var errOut bytes.Buffer
-	if err := Run([]string{"ui", "nope"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "unknown ui subcommand") {
+	if err := Run([]string{"ui", "nope"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "unknown command: ui") {
 		t.Fatalf("unexpected ui unknown error: %v", err)
 	}
 	out.Reset()
-	if err := Run([]string{"ui", "serve", "--addr", "127.0.0.1:-1"}, &out, &errOut); err == nil {
-		t.Fatal("expected ui serve with invalid addr to fail")
+	if err := Run([]string{"serve", "--addr", "127.0.0.1:-1"}, &out, &errOut); err == nil {
+		t.Fatal("expected serve with invalid addr to fail")
 	}
-	if !strings.Contains(out.String(), "ui listening on http://127.0.0.1:-1") {
+	if !strings.Contains(out.String(), "serving on http://127.0.0.1:-1") {
 		t.Fatalf("unexpected ui output: %q", out.String())
 	}
 
@@ -311,18 +311,16 @@ func TestRunCommandUsageErrors(t *testing.T) {
 		{[]string{"repo", "include"}, "missing repo include subcommand"},
 		{[]string{"repo", "include", "nope"}, "unknown repo include subcommand"},
 		{[]string{"repo", "include", "add", "main"}, "usage: rist repo include add <id> <path>"},
-		{[]string{"backup"}, "missing backup subcommand"},
-		{[]string{"backup", "run"}, "usage: rist backup run <id>"},
-		{[]string{"backup", "run", "main", "--dry-run", "extra"}, "usage: rist backup run <id>"},
+		{[]string{"backup"}, "usage: rist backup <id>"},
+		{[]string{"backup", "main", "--dry-run", "extra"}, "usage: rist backup <id>"},
 		{[]string{"snapshots"}, "usage: rist snapshots <id>"},
-		{[]string{"maintenance"}, "missing maintenance subcommand"},
-		{[]string{"maintenance", "check"}, "usage: rist maintenance check <id>"},
-		{[]string{"maintenance", "prune"}, "usage: rist maintenance prune <id>"},
-		{[]string{"maintenance", "stats"}, "usage: rist maintenance stats <id>"},
-		{[]string{"maintenance", "forget"}, "usage: rist maintenance forget <id>"},
-		{[]string{"maintenance", "forget", "main", "--keep-last", "2", "extra"}, "usage: rist maintenance forget <id>"},
-		{[]string{"restore"}, "missing restore subcommand"},
-		{[]string{"restore", "run"}, "usage: rist restore run <id>"},
+		{[]string{"check"}, "usage: rist check <id>"},
+		{[]string{"prune"}, "usage: rist prune <id>"},
+		{[]string{"stats"}, "usage: rist stats <id>"},
+		{[]string{"forget"}, "usage: rist forget <id>"},
+		{[]string{"forget", "main", "--keep-last", "2", "extra"}, "usage: rist forget <id>"},
+		{[]string{"restore"}, "usage: rist restore <id>"},
+		{[]string{"restore", "main", "extra"}, "usage: rist restore <id>"},
 		{[]string{"pw"}, "missing repo id or pw subcommand"},
 		{[]string{"pw", "set"}, "usage: rist pw set <id>"},
 		{[]string{"pw", "clear"}, "usage: rist pw clear <id>"},
@@ -459,19 +457,19 @@ func TestRepoInitListMaintenanceRestoreBranches(t *testing.T) {
 		t.Fatalf("runRepoInit failed: %v", err)
 	}
 
-	if err := runMaintenanceCheck([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance check <id>") {
-		t.Fatalf("runMaintenanceCheck usage error = %v", err)
+	if err := runCheck([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist check <id>") {
+		t.Fatalf("runCheck usage error = %v", err)
 	}
 	out.Reset()
-	if err := runMaintenanceCheck([]string{"main"}, &out, &errOut); err != nil {
-		t.Fatalf("runMaintenanceCheck failed: %v", err)
+	if err := runCheck([]string{"main"}, &out, &errOut); err != nil {
+		t.Fatalf("runCheck failed: %v", err)
 	}
 
-	if err := runMaintenanceStats([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance stats <id>") {
-		t.Fatalf("runMaintenanceStats usage error = %v", err)
+	if err := runStats([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist stats <id>") {
+		t.Fatalf("runStats usage error = %v", err)
 	}
 
-	if err := runRestoreRun([]string{"main", "extra"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist restore run <id>") {
+	if err := runRestoreRun([]string{"main", "extra"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist restore <id>") {
 		t.Fatalf("runRestoreRun usage extra error = %v", err)
 	}
 	out.Reset()
@@ -602,11 +600,11 @@ func TestRunConfigAndUIErrorBranches(t *testing.T) {
 		t.Fatal("expected runConfig migrate to fail when config is unavailable")
 	}
 
-	if err := runUI([]string{}, &out); err == nil || !strings.Contains(err.Error(), "missing ui subcommand") {
-		t.Fatalf("runUI missing subcommand error = %v", err)
+	if err := Run([]string{"ui"}, &out, io.Discard); err == nil || !strings.Contains(err.Error(), "unknown command: ui") {
+		t.Fatalf("expected unknown command: ui, got error = %v", err)
 	}
-	if err := runUI([]string{"serve", "--addr"}, &out); err == nil {
-		t.Fatal("expected runUI to fail on invalid flag usage")
+	if err := runServe([]string{"--addr"}, &out); err == nil {
+		t.Fatal("expected runServe to fail on invalid flag usage")
 	}
 }
 
@@ -620,17 +618,17 @@ func TestSnapshotsMaintenanceAndForgetValidationBranches(t *testing.T) {
 	if err := runSnapshots([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runSnapshots missing repo error = %v", err)
 	}
-	if err := runMaintenanceCheck([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
-		t.Fatalf("runMaintenanceCheck missing repo error = %v", err)
+	if err := runCheck([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
+		t.Fatalf("runCheck missing repo error = %v", err)
 	}
-	if err := runMaintenancePrune([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
-		t.Fatalf("runMaintenancePrune missing repo error = %v", err)
+	if err := runPrune([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
+		t.Fatalf("runPrune missing repo error = %v", err)
 	}
-	if err := runMaintenanceStats([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
-		t.Fatalf("runMaintenanceStats missing repo error = %v", err)
+	if err := runStats([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
+		t.Fatalf("runStats missing repo error = %v", err)
 	}
-	if err := runMaintenanceForget([]string{"main"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "at least one keep policy") {
-		t.Fatalf("runMaintenanceForget expected policy validation error, got %v", err)
+	if err := runForget([]string{"main"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "at least one keep policy") {
+		t.Fatalf("runForget expected policy validation error, got %v", err)
 	}
 }
 

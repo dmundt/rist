@@ -179,18 +179,26 @@ func validateAllowedUICommand(args []string) error {
 			return nil
 		}
 	case "backup":
-		if len(args) == 3 && args[1] == "run" {
+		if len(args) == 2 {
 			return nil
 		}
 	case "snapshots":
 		if len(args) == 2 {
 			return nil
 		}
-	case "maintenance":
-		if len(args) == 3 && (args[1] == "check" || args[1] == "prune" || args[1] == "stats") {
+	case "check":
+		if len(args) == 2 {
+			return nil
+		}
+	case "prune":
+		if len(args) == 2 {
+			return nil
+		}
+	case "stats":
+		if len(args) == 2 {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("command not allowed from UI; use one of: config show|validate, repo list|init <id>, backup run <id>, snapshots <id>, maintenance check|prune|stats <id>")
+	return fmt.Errorf("command not allowed from UI; use one of: config show|validate, repo list|init <id>, backup <id>, snapshots <id>, check|prune|stats <id>")
 }

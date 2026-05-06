@@ -25,7 +25,7 @@ func init() {
 		_, _ = os.Stdout.WriteString("password stored for repo: " + args[2] + "\n")
 		os.Exit(0)
 	}
-	if len(args) >= 3 && args[0] == "backup" && args[1] == "run" {
+	if len(args) >= 2 && args[0] == "backup" {
 		_, _ = os.Stdout.WriteString("Backup Completed\n- Repo: main\n")
 		os.Exit(0)
 	}
@@ -39,11 +39,11 @@ func TestValidateAllowedUICommand(t *testing.T) {
 		{"config", "validate"},
 		{"repo", "list"},
 		{"repo", "init", "main"},
-		{"backup", "run", "main"},
+		{"backup", "main"},
 		{"snapshots", "main"},
-		{"maintenance", "check", "main"},
-		{"maintenance", "prune", "main"},
-		{"maintenance", "stats", "main"},
+		{"check", "main"},
+		{"prune", "main"},
+		{"stats", "main"},
 	}
 	for _, args := range allowed {
 		if err := validateAllowedUICommand(args); err != nil {
@@ -57,7 +57,7 @@ func TestValidateAllowedUICommandRejectsOtherCommands(t *testing.T) {
 		{"pw", "main"},
 		{"pw", "set", "main"},
 		{"repo", "remove", "main"},
-		{"maintenance", "forget", "main", "--keep-daily", "7"},
+		{"forget", "main", "--keep-daily", "7"},
 		{"restore", "run", "main", "--snapshot", "latest", "--target", "C:\\restore"},
 	}
 	for _, args := range rejected {
@@ -223,7 +223,7 @@ func TestHandleRunAndPasswordSet(t *testing.T) {
 	t.Setenv("GO_WANT_HELPER_PROCESS", "1")
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/run", strings.NewReader(url.Values{"command": {"backup run main"}}.Encode()))
+	req := httptest.NewRequest("POST", "/run", strings.NewReader(url.Values{"command": {"backup main"}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	Server{}.handleRun(rec, req)
 	if !strings.Contains(rec.Body.String(), "Backup Completed") {
@@ -242,7 +242,7 @@ func TestHandleRunAndPasswordSet(t *testing.T) {
 func TestHandleRunExecutionErrorAndPasswordSetParseError(t *testing.T) {
 	t.Setenv("GO_WANT_HELPER_PROCESS", "1")
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/run", strings.NewReader(url.Values{"command": {"maintenance check main"}}.Encode()))
+	req := httptest.NewRequest("POST", "/run", strings.NewReader(url.Values{"command": {"check main"}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	Server{}.handleRun(rec, req)
 	if !strings.Contains(rec.Body.String(), "helper failure") {
@@ -273,8 +273,8 @@ func TestValidateAllowedUICommandErrors(t *testing.T) {
 	if err := validateAllowedUICommand(nil); err == nil {
 		t.Fatal("expected empty command to be rejected")
 	}
-	if err := validateAllowedUICommand([]string{"maintenance", "forget", "main"}); err == nil {
-		t.Fatal("expected maintenance forget to be rejected")
+	if err := validateAllowedUICommand([]string{"forget", "main"}); err == nil {
+		t.Fatal("expected forget to be rejected")
 	}
 }
 

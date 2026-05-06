@@ -36,11 +36,11 @@ Rist is a Windows-focused, deterministic CLI wrapper around restic with an optio
     - `./rist.exe repo init main`
 6. Add include paths and run backup:
     - `./rist.exe repo include add main "C:\\Users\\me\\Documents"`
-    - `./rist.exe backup run main`
+    - `./rist.exe backup main`
 7. Preview actions without changing the repository:
-    - `./rist.exe backup run main --dry-run`
-    - `./rist.exe maintenance forget main --keep-last 5 --dry-run`
-    - `./rist.exe restore run main --snapshot latest --target "C:\restore" --dry-run`
+    - `./rist.exe backup main --dry-run`
+    - `./rist.exe forget main --keep-last 5 --dry-run`
+    - `./rist.exe restore main --snapshot latest --target "C:\restore" --dry-run`
 
 ## Layout
 
@@ -69,14 +69,14 @@ Rist is a Windows-focused, deterministic CLI wrapper around restic with an optio
 - `rist pw set <id>` (password from stdin)
 - `rist pw <id>`
 - `rist pw clear <id>`
-- `rist backup run <id> [--dry-run]`
+- `rist backup <id> [--dry-run]`
 - `rist snapshots <id>`
-- `rist maintenance check <id>`
-- `rist maintenance prune <id>`
-- `rist maintenance stats <id>`
-- `rist maintenance forget <id> [--keep-* N] [--prune] [--dry-run]`
-- `rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]`
-- `rist ui serve [--addr 127.0.0.1:8787]`
+- `rist check <id>`
+- `rist prune <id>`
+- `rist stats <id>`
+- `rist forget <id> [--keep-* N] [--prune] [--dry-run]`
+- `rist restore <id> --snapshot <snapshot> --target <path> [--dry-run]`
+- `rist serve [--addr 127.0.0.1:8787]`
 
 ## Build
 
@@ -91,7 +91,7 @@ Rist is a Windows-focused, deterministic CLI wrapper around restic with an optio
 - `restic command failed (wrong-password)`:
   - Reset password with `rist pw set <id>` and retry.
 - `restic command failed (repository-damaged)`:
-  - Run `rist maintenance check <id>` and inspect repository health.
+  - Run `rist check <id>` and inspect repository health.
 - Config schema/version errors:
   - Run `rist config migrate` to normalize current schema version.
 
