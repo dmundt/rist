@@ -179,24 +179,12 @@ func TestRunResticBackedCommands(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(out.String(), "- duration:") {
-		t.Fatalf("expected backup output to include duration, got %q", out.String())
-	}
 }
 
 func TestRunHelpersAndUtilities(t *testing.T) {
 	setupTestEnvironment(t)
 	seedRepoConfig(t)
 
-	if !shouldLogDuration([]string{"config", "show"}, io.Discard) {
-		t.Fatal("expected config show to log duration")
-	}
-	if shouldLogDuration([]string{"backup", "run", "main"}, io.Discard) {
-		t.Fatal("did not expect backup run to use global duration logging")
-	}
-	if shouldLogDuration([]string{"pw", "main"}, io.Discard) {
-		t.Fatal("did not expect internal pw command to log duration")
-	}
 	if shouldRenderProgress(&bytes.Buffer{}) {
 		t.Fatal("bytes.Buffer should not be treated as terminal")
 	}
@@ -531,20 +519,7 @@ func TestRepoListNoReposAndProgressNilBranches(t *testing.T) {
 	}
 }
 
-func TestDurationAndCommandBranchHelpers(t *testing.T) {
-	if shouldLogDuration([]string{"config", "show"}, nil) {
-		t.Fatal("expected shouldLogDuration to be false when stderr is nil")
-	}
-	if shouldLogDuration([]string{"backup", "run", "main"}, io.Discard) {
-		t.Fatal("expected backup run to suppress global duration logging")
-	}
-	if shouldLogDuration([]string{"pw", "main"}, io.Discard) {
-		t.Fatal("expected internal pw get to suppress global duration logging")
-	}
-	if !shouldLogDuration([]string{"pw", "set", "main"}, io.Discard) {
-		t.Fatal("expected pw set to log duration")
-	}
-
+func TestCommandBranchHelpers(t *testing.T) {
 	backup := newBackupProgressBar(nil)
 	backup.Update(restic.BackupStatus{PercentDone: 1.2})
 	backup.Finish()

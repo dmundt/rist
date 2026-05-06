@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/dmundt/rist/internal/config"
 	"github.com/dmundt/rist/internal/credentials"
@@ -21,17 +20,6 @@ import (
 )
 
 func Run(args []string, stdout, stderr io.Writer) (err error) {
-	start := time.Now()
-	defer func() {
-		if shouldLogDuration(args, stderr) {
-			status := "ok"
-			if err != nil {
-				status = "error"
-			}
-			_, _ = fmt.Fprintf(stderr, "duration: %s (%s, %s)\n", time.Since(start).Round(time.Millisecond), strings.Join(args, " "), status)
-		}
-	}()
-
 	if len(args) == 0 {
 		printUsage(stdout)
 		return nil
@@ -57,23 +45,6 @@ func Run(args []string, stdout, stderr io.Writer) (err error) {
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
-}
-
-func shouldLogDuration(args []string, stderr io.Writer) bool {
-	if stderr == nil {
-		return false
-	}
-
-	if len(args) >= 2 && args[0] == "backup" && args[1] == "run" {
-		return false
-	}
-
-	// Suppress timing noise for password-command calls used internally by restic.
-	if len(args) == 2 && args[0] == "pw" && args[1] != "set" && args[1] != "clear" {
-		return false
-	}
-
-	return true
 }
 
 func printUsage(out io.Writer) {
@@ -589,7 +560,6 @@ func runBackupRun(args []string, out, errOut io.Writer) error {
 		return errors.New("usage: rist backup run <id> [--dry-run]")
 	}
 	repoID := args[0]
-	start := time.Now()
 
 	fs := flag.NewFlagSet("backup run", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -624,9 +594,6 @@ func runBackupRun(args []string, out, errOut io.Writer) error {
 		}
 	}
 
-	if out != nil {
-		_, _ = fmt.Fprintf(out, "- duration: %s\n", time.Since(start).Round(time.Millisecond))
-	}
 	return nil
 }
 
