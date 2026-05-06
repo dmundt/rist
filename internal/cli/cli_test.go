@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -185,48 +184,9 @@ func TestRunResticBackedCommands(t *testing.T) {
 	}
 }
 
-func TestRunJSONCommandsAndHelpers(t *testing.T) {
+func TestRunHelpersAndUtilities(t *testing.T) {
 	setupTestEnvironment(t)
 	seedRepoConfig(t)
-
-	var out bytes.Buffer
-	var errOut bytes.Buffer
-	commands := [][]string{
-		{"json", "backup", "run", "main"},
-		{"json", "snapshots", "main"},
-		{"json", "maintenance", "stats", "main"},
-		{"json", "restore", "run", "main", "--snapshot", "latest", "--target", `C:\restore`},
-	}
-	for _, args := range commands {
-		out.Reset()
-		errOut.Reset()
-		if err := Run(args, &out, &errOut); err != nil {
-			t.Fatalf("Run(%v) failed: %v", args, err)
-		}
-	}
-
-	if err := Run([]string{"json", "nope"}, &out, &errOut); err == nil {
-		t.Fatal("expected unknown json command target error")
-	}
-
-	out.Reset()
-	errOut.Reset()
-	if err := Run([]string{"json", "backup", "run", "main"}, &out, &errOut); err != nil {
-		t.Fatalf("json backup failed: %v", err)
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
-		t.Fatalf("json backup output invalid json: %v\n%s", err, out.String())
-	}
-
-	out.Reset()
-	if err := writeJSON(&out, map[string]string{"hello": "world"}); err != nil {
-		t.Fatalf("writeJSON returned error: %v", err)
-	}
-	if !strings.Contains(out.String(), `"hello": "world"`) {
-		t.Fatalf("unexpected writeJSON output: %q", out.String())
-	}
 
 	if !shouldLogDuration([]string{"config", "show"}, io.Discard) {
 		t.Fatal("expected config show to log duration")
@@ -378,7 +338,6 @@ func TestRunCommandUsageErrors(t *testing.T) {
 		{[]string{"pw"}, "missing repo id or pw subcommand"},
 		{[]string{"pw", "set"}, "usage: rist pw set <id>"},
 		{[]string{"pw", "clear"}, "usage: rist pw clear <id>"},
-		{[]string{"json"}, "missing json command target"},
 	}
 
 	for _, tc := range tests {
@@ -504,37 +463,31 @@ func TestRepoInitListMaintenanceRestoreBranches(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
 
-	if err := runRepoInit([]string{}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "usage: rist repo init <id>") {
+	if err := runRepoInit([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist repo init <id>") {
 		t.Fatalf("runRepoInit usage error = %v", err)
 	}
 	out.Reset()
-	if err := runRepoInit([]string{"main"}, &out, &errOut, outputFormatJSON); err != nil {
-		t.Fatalf("runRepoInit json failed: %v", err)
-	}
-	if !json.Valid(out.Bytes()) {
-		t.Fatalf("runRepoInit json output invalid: %q", out.String())
+	if err := runRepoInit([]string{"main"}, &out, &errOut); err != nil {
+		t.Fatalf("runRepoInit failed: %v", err)
 	}
 
-	if err := runMaintenanceCheck([]string{}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance check <id>") {
+	if err := runMaintenanceCheck([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance check <id>") {
 		t.Fatalf("runMaintenanceCheck usage error = %v", err)
 	}
 	out.Reset()
-	if err := runMaintenanceCheck([]string{"main"}, &out, &errOut, outputFormatJSON); err != nil {
-		t.Fatalf("runMaintenanceCheck json failed: %v", err)
-	}
-	if !json.Valid(out.Bytes()) {
-		t.Fatalf("runMaintenanceCheck json output invalid: %q", out.String())
+	if err := runMaintenanceCheck([]string{"main"}, &out, &errOut); err != nil {
+		t.Fatalf("runMaintenanceCheck failed: %v", err)
 	}
 
-	if err := runMaintenanceStats([]string{}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance stats <id>") {
+	if err := runMaintenanceStats([]string{}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist maintenance stats <id>") {
 		t.Fatalf("runMaintenanceStats usage error = %v", err)
 	}
 
-	if err := runRestoreRun([]string{"main", "extra"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "usage: rist restore run <id>") {
+	if err := runRestoreRun([]string{"main", "extra"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "usage: rist restore run <id>") {
 		t.Fatalf("runRestoreRun usage extra error = %v", err)
 	}
 	out.Reset()
-	if err := runRestoreRun([]string{"main", "--snapshot", "latest", "--target", `C:\restore`, "--dry-run"}, &out, &errOut, outputFormatText); err != nil {
+	if err := runRestoreRun([]string{"main", "--snapshot", "latest", "--target", `C:\restore`, "--dry-run"}, &out, &errOut); err != nil {
 		t.Fatalf("runRestoreRun dry-run failed: %v", err)
 	}
 	if !strings.Contains(out.String(), "restore dry-run completed") {
@@ -547,7 +500,7 @@ func TestRepoInitListMaintenanceRestoreBranches(t *testing.T) {
 	}, nil); err != nil {
 		t.Fatalf("updateRepo clear include failed: %v", err)
 	}
-	if err := runBackupRun([]string{"main"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo include list is empty") {
+	if err := runBackupRun([]string{"main"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo include list is empty") {
 		t.Fatalf("runBackupRun expected empty include error, got %v", err)
 	}
 }
@@ -592,10 +545,6 @@ func TestDurationAndCommandBranchHelpers(t *testing.T) {
 		t.Fatal("expected pw set to log duration")
 	}
 
-	if err := writeJSON(io.Discard, map[string]any{"bad": make(chan int)}); err == nil {
-		t.Fatal("expected writeJSON to return marshal error for unsupported value")
-	}
-
 	backup := newBackupProgressBar(nil)
 	backup.Update(restic.BackupStatus{PercentDone: 1.2})
 	backup.Finish()
@@ -633,10 +582,10 @@ func TestRepoAddRemoveAndRestorePasswordErrorBranches(t *testing.T) {
 		t.Fatalf("runRepoRemove missing repo error = %v", err)
 	}
 
-	if err := runRestoreRun([]string{"main", "--target", `C:\restore`}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "snapshot is required") {
+	if err := runRestoreRun([]string{"main", "--target", `C:\restore`}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "snapshot is required") {
 		t.Fatalf("runRestoreRun missing snapshot error = %v", err)
 	}
-	if err := runRestoreRun([]string{"main", "--snapshot", "latest"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "target is required") {
+	if err := runRestoreRun([]string{"main", "--snapshot", "latest"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "target is required") {
 		t.Fatalf("runRestoreRun missing target error = %v", err)
 	}
 
@@ -693,16 +642,16 @@ func TestSnapshotsMaintenanceAndForgetValidationBranches(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
 
-	if err := runSnapshots([]string{"missing"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo not found") {
+	if err := runSnapshots([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runSnapshots missing repo error = %v", err)
 	}
-	if err := runMaintenanceCheck([]string{"missing"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo not found") {
+	if err := runMaintenanceCheck([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runMaintenanceCheck missing repo error = %v", err)
 	}
 	if err := runMaintenancePrune([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runMaintenancePrune missing repo error = %v", err)
 	}
-	if err := runMaintenanceStats([]string{"missing"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo not found") {
+	if err := runMaintenanceStats([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runMaintenanceStats missing repo error = %v", err)
 	}
 	if err := runMaintenanceForget([]string{"main"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "at least one keep policy") {
@@ -717,20 +666,20 @@ func TestBackupRestoreAndPasswordAdditionalErrorBranches(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
 
-	if err := runBackupRun([]string{"main", "--bad-flag"}, &out, &errOut, outputFormatText); err == nil {
+	if err := runBackupRun([]string{"main", "--bad-flag"}, &out, &errOut); err == nil {
 		t.Fatal("expected runBackupRun to fail on invalid flag")
 	}
-	if err := runBackupRun([]string{"missing"}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo not found") {
+	if err := runBackupRun([]string{"missing"}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runBackupRun missing repo error = %v", err)
 	}
-	if err := runBackupRun([]string{"main", "--dry-run"}, nil, &errOut, outputFormatText); err != nil {
+	if err := runBackupRun([]string{"main", "--dry-run"}, nil, &errOut); err != nil {
 		t.Fatalf("runBackupRun with nil output returned error: %v", err)
 	}
 
-	if err := runRestoreRun([]string{"main", "--bad-flag"}, &out, &errOut, outputFormatText); err == nil {
+	if err := runRestoreRun([]string{"main", "--bad-flag"}, &out, &errOut); err == nil {
 		t.Fatal("expected runRestoreRun to fail on invalid flag")
 	}
-	if err := runRestoreRun([]string{"missing", "--snapshot", "latest", "--target", `C:\restore`}, &out, &errOut, outputFormatText); err == nil || !strings.Contains(err.Error(), "repo not found") {
+	if err := runRestoreRun([]string{"missing", "--snapshot", "latest", "--target", `C:\restore`}, &out, &errOut); err == nil || !strings.Contains(err.Error(), "repo not found") {
 		t.Fatalf("runRestoreRun missing repo error = %v", err)
 	}
 

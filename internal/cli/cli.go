@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,13 +18,6 @@ import (
 	"github.com/dmundt/rist/internal/ui"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/term"
-)
-
-type outputFormat string
-
-const (
-	outputFormatText outputFormat = "text"
-	outputFormatJSON outputFormat = "json"
 )
 
 func Run(args []string, stdout, stderr io.Writer) (err error) {
@@ -49,17 +41,15 @@ func Run(args []string, stdout, stderr io.Writer) (err error) {
 	case "config":
 		return runConfig(args[1:], stdout)
 	case "repo":
-		return runRepo(args[1:], stdout, stderr, outputFormatText)
+		return runRepo(args[1:], stdout, stderr)
 	case "backup":
-		return runBackup(args[1:], stdout, stderr, outputFormatText)
+		return runBackup(args[1:], stdout, stderr)
 	case "snapshots":
-		return runSnapshots(args[1:], stdout, stderr, outputFormatText)
+		return runSnapshots(args[1:], stdout, stderr)
 	case "maintenance":
-		return runMaintenance(args[1:], stdout, stderr, outputFormatText)
+		return runMaintenance(args[1:], stdout, stderr)
 	case "restore":
-		return runRestore(args[1:], stdout, stderr, outputFormatText)
-	case "json":
-		return runJSON(args[1:], stdout, stderr)
+		return runRestore(args[1:], stdout, stderr)
 	case "ui":
 		return runUI(args[1:], stdout)
 	case "pw":
@@ -112,12 +102,6 @@ func printUsage(out io.Writer) {
 	fmt.Fprintln(out, "  rist maintenance stats <id>")
 	fmt.Fprintln(out, "  rist maintenance forget <id> [--keep-last n] [--keep-daily n] [--keep-weekly n] [--keep-monthly n] [--keep-yearly n] [--prune] [--dry-run]")
 	fmt.Fprintln(out, "  rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
-	fmt.Fprintln(out, "  rist json snapshots <id>")
-	fmt.Fprintln(out, "  rist json backup run <id> [--dry-run]")
-	fmt.Fprintln(out, "  rist json maintenance check <id>")
-	fmt.Fprintln(out, "  rist json maintenance stats <id>")
-	fmt.Fprintln(out, "  rist json restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
-	fmt.Fprintln(out, "  rist json repo init <id>")
 	fmt.Fprintln(out, "  rist ui serve [--addr 127.0.0.1:8787]")
 	fmt.Fprintln(out, "  rist pw <id>")
 	fmt.Fprintln(out, "  rist pw set <id>  (password from stdin)")
@@ -177,7 +161,7 @@ func runConfig(args []string, out io.Writer) error {
 	}
 }
 
-func runRepo(args []string, out, errOut io.Writer, format outputFormat) error {
+func runRepo(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("missing repo subcommand")
 	}
@@ -190,7 +174,7 @@ func runRepo(args []string, out, errOut io.Writer, format outputFormat) error {
 	case "list":
 		return runRepoList(out)
 	case "init":
-		return runRepoInit(args[1:], out, errOut, format)
+		return runRepoInit(args[1:], out, errOut)
 	case "include":
 		return runRepoPathListCommand(args[1:], out, "include")
 	case "exclude":
@@ -228,20 +212,20 @@ func runRepoPathListCommand(args []string, out io.Writer, listType string) error
 	}
 }
 
-func runBackup(args []string, out, errOut io.Writer, format outputFormat) error {
+func runBackup(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("missing backup subcommand")
 	}
 
 	switch args[0] {
 	case "run":
-		return runBackupRun(args[1:], out, errOut, format)
+		return runBackupRun(args[1:], out, errOut)
 	default:
 		return fmt.Errorf("unknown backup subcommand: %s", args[0])
 	}
 }
 
-func runSnapshots(args []string, out, errOut io.Writer, format outputFormat) error {
+func runSnapshots(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: rist snapshots <id>")
 	}
@@ -255,28 +239,21 @@ func runSnapshots(args []string, out, errOut io.Writer, format outputFormat) err
 	if err != nil {
 		return err
 	}
-	if format == outputFormatJSON {
-		items, err := runner.RunSnapshotsJSON(context.Background(), repo)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, items)
-	}
 	return runner.RunSnapshots(context.Background(), repo, out, errOut)
 }
 
-func runMaintenance(args []string, out, errOut io.Writer, format outputFormat) error {
+func runMaintenance(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("missing maintenance subcommand")
 	}
 
 	switch args[0] {
 	case "check":
-		return runMaintenanceCheck(args[1:], out, errOut, format)
+		return runMaintenanceCheck(args[1:], out, errOut)
 	case "prune":
 		return runMaintenancePrune(args[1:], out, errOut)
 	case "stats":
-		return runMaintenanceStats(args[1:], out, errOut, format)
+		return runMaintenanceStats(args[1:], out, errOut)
 	case "forget":
 		return runMaintenanceForget(args[1:], out, errOut)
 	default:
@@ -284,37 +261,16 @@ func runMaintenance(args []string, out, errOut io.Writer, format outputFormat) e
 	}
 }
 
-func runRestore(args []string, out, errOut io.Writer, format outputFormat) error {
+func runRestore(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("missing restore subcommand")
 	}
 
 	switch args[0] {
 	case "run":
-		return runRestoreRun(args[1:], out, errOut, format)
+		return runRestoreRun(args[1:], out, errOut)
 	default:
 		return fmt.Errorf("unknown restore subcommand: %s", args[0])
-	}
-}
-
-func runJSON(args []string, out, errOut io.Writer) error {
-	if len(args) == 0 {
-		return errors.New("missing json command target")
-	}
-
-	switch args[0] {
-	case "repo":
-		return runRepo(args[1:], out, errOut, outputFormatJSON)
-	case "backup":
-		return runBackup(args[1:], out, errOut, outputFormatJSON)
-	case "snapshots":
-		return runSnapshots(args[1:], out, errOut, outputFormatJSON)
-	case "maintenance":
-		return runMaintenance(args[1:], out, errOut, outputFormatJSON)
-	case "restore":
-		return runRestore(args[1:], out, errOut, outputFormatJSON)
-	default:
-		return fmt.Errorf("unknown json command target: %s", args[0])
 	}
 }
 
@@ -448,7 +404,7 @@ func runRepoList(out io.Writer) error {
 	return nil
 }
 
-func runRepoInit(args []string, out, errOut io.Writer, format outputFormat) error {
+func runRepoInit(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: rist repo init <id>")
 	}
@@ -461,13 +417,6 @@ func runRepoInit(args []string, out, errOut io.Writer, format outputFormat) erro
 	runner, err := restic.NewDefaultRunner()
 	if err != nil {
 		return err
-	}
-	if format == outputFormatJSON {
-		result, err := runner.RunInitJSON(context.Background(), repo)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, result)
 	}
 
 	if err := runner.RunInit(context.Background(), repo, out, errOut); err != nil {
@@ -635,7 +584,7 @@ func listRepoPaths(repoID, listType string, out io.Writer) error {
 	return nil
 }
 
-func runBackupRun(args []string, out, errOut io.Writer, format outputFormat) error {
+func runBackupRun(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("usage: rist backup run <id> [--dry-run]")
 	}
@@ -663,13 +612,6 @@ func runBackupRun(args []string, out, errOut io.Writer, format outputFormat) err
 		return err
 	}
 	options := restic.BackupRunOptions{DryRun: *dryRun}
-	if format == outputFormatJSON {
-		result, err := runner.RunBackupJSONWithOptions(context.Background(), repo, options)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, result)
-	}
 
 	if shouldRenderProgress(out) && !*dryRun {
 		progress := newBackupProgressBar(out)
@@ -688,7 +630,7 @@ func runBackupRun(args []string, out, errOut io.Writer, format outputFormat) err
 	return nil
 }
 
-func runMaintenanceCheck(args []string, out, errOut io.Writer, format outputFormat) error {
+func runMaintenanceCheck(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: rist maintenance check <id>")
 	}
@@ -699,13 +641,6 @@ func runMaintenanceCheck(args []string, out, errOut io.Writer, format outputForm
 	runner, err := restic.NewDefaultRunner()
 	if err != nil {
 		return err
-	}
-	if format == outputFormatJSON {
-		result, err := runner.RunCheckJSON(context.Background(), repo)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, result)
 	}
 	return runner.RunCheck(context.Background(), repo, out, errOut)
 }
@@ -725,7 +660,7 @@ func runMaintenancePrune(args []string, out, errOut io.Writer) error {
 	return runner.RunPrune(context.Background(), repo, out, errOut)
 }
 
-func runMaintenanceStats(args []string, out, errOut io.Writer, format outputFormat) error {
+func runMaintenanceStats(args []string, out, errOut io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: rist maintenance stats <id>")
 	}
@@ -736,13 +671,6 @@ func runMaintenanceStats(args []string, out, errOut io.Writer, format outputForm
 	runner, err := restic.NewDefaultRunner()
 	if err != nil {
 		return err
-	}
-	if format == outputFormatJSON {
-		result, err := runner.RunStatsJSON(context.Background(), repo)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, result)
 	}
 	return runner.RunStats(context.Background(), repo, out, errOut)
 }
@@ -793,7 +721,7 @@ func runMaintenanceForget(args []string, out, errOut io.Writer) error {
 	return runner.RunForget(context.Background(), repo, policy, out, errOut)
 }
 
-func runRestoreRun(args []string, out, errOut io.Writer, format outputFormat) error {
+func runRestoreRun(args []string, out, errOut io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("usage: rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]")
 	}
@@ -822,13 +750,6 @@ func runRestoreRun(args []string, out, errOut io.Writer, format outputFormat) er
 		return err
 	}
 	options := restic.RestoreRunOptions{Snapshot: *snapshot, Target: *target, DryRun: *dryRun}
-	if format == outputFormatJSON {
-		result, err := runner.RunRestoreJSONWithOptions(context.Background(), repo, options)
-		if err != nil {
-			return err
-		}
-		return writeJSON(out, result)
-	}
 
 	if shouldRenderProgress(out) && !*dryRun {
 		progress := newRestoreProgressBar(out)
@@ -1032,15 +953,6 @@ func updateRepo(repoID string, mutate func(*config.Repo) error, onSuccess func()
 	}
 
 	return fmt.Errorf("repo not found: %s", repoID)
-}
-
-func writeJSON(out io.Writer, value any) error {
-	b, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(out, string(b))
-	return err
 }
 
 type backupProgressBar struct {

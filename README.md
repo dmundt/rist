@@ -2,8 +2,6 @@
 
 Rist is a Windows-focused, deterministic CLI wrapper around restic with an optional local Web UI.
 
-For scripting, Rist exposes JSON-first commands that use parsed restic JSON output as the source of truth instead of raw terminal text.
-
 ## Security Model
 
 - Passwords are stored in the OS credential backend.
@@ -43,10 +41,6 @@ For scripting, Rist exposes JSON-first commands that use parsed restic JSON outp
     - `./rist.exe backup run main --dry-run`
     - `./rist.exe maintenance forget main --keep-last 5 --dry-run`
     - `./rist.exe restore run main --snapshot latest --target "C:\restore" --dry-run`
-8. Consume structured JSON in scripts:
-    - `./rist.exe json snapshots main`
-    - `./rist.exe json maintenance stats main`
-    - `./rist.exe json backup run main --dry-run`
 
 ## Layout
 
@@ -82,20 +76,7 @@ For scripting, Rist exposes JSON-first commands that use parsed restic JSON outp
 - `rist maintenance stats <id>`
 - `rist maintenance forget <id> [--keep-* N] [--prune] [--dry-run]`
 - `rist restore run <id> --snapshot <snapshot> --target <path> [--dry-run]`
-- `rist json repo init <id>`
-- `rist json backup run <id> [--dry-run]`
-- `rist json snapshots <id>`
-- `rist json maintenance check <id>`
-- `rist json maintenance stats <id>`
-- `rist json restore run <id> --snapshot <snapshot> --target <path> [--dry-run]`
 - `rist ui serve [--addr 127.0.0.1:8787]`
-
-## JSON Scripting
-
-- `rist json ...` commands emit structured JSON derived from restic `--json` output.
-- Current JSON surfaces cover `repo init`, `backup run`, `snapshots`, `maintenance check`, `maintenance stats`, and `restore run`.
-- Dry-run is wrapped for `backup run`, `maintenance forget`, and `restore run`, including the JSON backup and restore entrypoints.
-- Human-readable commands still exist, but the JSON subcommands are the stable interface for automation.
 
 ## Build
 
