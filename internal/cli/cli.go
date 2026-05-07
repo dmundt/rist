@@ -892,18 +892,11 @@ func (p *backupProgressBar) Update(status restic.BackupStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = bargo.New(bargo.WithCarriageReturn(true))
+		p.bar = bargo.New(bargo.WithCarriageReturn(true), bargo.WithClamp(true))
 	}
 
-	percent := status.PercentDone * 100
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > 100 {
-		percent = 100
-	}
-
-	_, _ = p.bar.WriteTo(p.out, percent, 24)
+	suffix := fmt.Sprintf("%d/%d files", status.FilesDone, status.TotalFiles)
+	_, _ = p.bar.WriteToWithText(p.out, status.PercentDone*100, 24, suffix)
 }
 
 func (p *backupProgressBar) Finish() {
@@ -931,18 +924,11 @@ func (p *restoreProgressBar) Update(status restic.RestoreStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = bargo.New(bargo.WithCarriageReturn(true))
+		p.bar = bargo.New(bargo.WithCarriageReturn(true), bargo.WithClamp(true))
 	}
 
-	percent := status.PercentDone * 100
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > 100 {
-		percent = 100
-	}
-
-	_, _ = p.bar.WriteTo(p.out, percent, 24)
+	suffix := fmt.Sprintf("%d/%d files", status.FilesRestored, status.TotalFiles)
+	_, _ = p.bar.WriteToWithText(p.out, status.PercentDone*100, 24, suffix)
 }
 
 func (p *restoreProgressBar) Finish() {
