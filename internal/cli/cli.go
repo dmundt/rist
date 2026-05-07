@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dmundt/bargo"
 	"github.com/dmundt/rist/internal/config"
 	"github.com/dmundt/rist/internal/credentials"
 	"github.com/dmundt/rist/internal/restic"
 	"github.com/dmundt/rist/internal/ui"
-	"github.com/schollz/progressbar/v3"
 	"golang.org/x/term"
 )
 
@@ -876,7 +876,7 @@ func updateRepo(repoID string, mutate func(*config.Repo) error, onSuccess func()
 
 type backupProgressBar struct {
 	out io.Writer
-	bar *progressbar.ProgressBar
+	bar *bargo.Bar
 }
 
 func newBackupProgressBar(out io.Writer) *backupProgressBar {
@@ -892,16 +892,10 @@ func (p *backupProgressBar) Update(status restic.BackupStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = progressbar.NewOptions64(
-			100,
-			progressbar.OptionSetWriter(p.out),
-			progressbar.OptionSetDescription("backup progress"),
-			progressbar.OptionShowCount(),
-			progressbar.OptionSetWidth(24),
-		)
+		p.bar = bargo.New(bargo.WithCarriageReturn(true))
 	}
 
-	percent := int64(status.PercentDone*100 + 0.5)
+	percent := status.PercentDone * 100
 	if percent < 0 {
 		percent = 0
 	}
@@ -909,19 +903,19 @@ func (p *backupProgressBar) Update(status restic.BackupStatus) {
 		percent = 100
 	}
 
-	_ = p.bar.Set64(percent)
+	_, _ = p.bar.WriteTo(p.out, percent, 24)
 }
 
 func (p *backupProgressBar) Finish() {
 	if p == nil || p.bar == nil {
 		return
 	}
-	_ = p.bar.Finish()
+	_, _ = io.WriteString(p.out, "\n")
 }
 
 type restoreProgressBar struct {
 	out io.Writer
-	bar *progressbar.ProgressBar
+	bar *bargo.Bar
 }
 
 func newRestoreProgressBar(out io.Writer) *restoreProgressBar {
@@ -937,16 +931,10 @@ func (p *restoreProgressBar) Update(status restic.RestoreStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = progressbar.NewOptions64(
-			100,
-			progressbar.OptionSetWriter(p.out),
-			progressbar.OptionSetDescription("restore progress"),
-			progressbar.OptionShowCount(),
-			progressbar.OptionSetWidth(24),
-		)
+		p.bar = bargo.New(bargo.WithCarriageReturn(true))
 	}
 
-	percent := int64(status.PercentDone*100 + 0.5)
+	percent := status.PercentDone * 100
 	if percent < 0 {
 		percent = 0
 	}
@@ -954,14 +942,14 @@ func (p *restoreProgressBar) Update(status restic.RestoreStatus) {
 		percent = 100
 	}
 
-	_ = p.bar.Set64(percent)
+	_, _ = p.bar.WriteTo(p.out, percent, 24)
 }
 
 func (p *restoreProgressBar) Finish() {
 	if p == nil || p.bar == nil {
 		return
 	}
-	_ = p.bar.Finish()
+	_, _ = io.WriteString(p.out, "\n")
 }
 
 func shouldRenderProgress(out io.Writer) bool {
