@@ -904,7 +904,7 @@ func (p *backupProgressBar) Update(status restic.BackupStatus) {
 	if status.TotalFiles > 0 {
 		p.totalFiles = status.TotalFiles
 	}
-	if status.FilesDone > 0 || status.PercentDone >= 1 {
+	if status.FilesDone > 0 {
 		p.filesDone = status.FilesDone
 	}
 	if status.PercentDone >= 1 && p.totalFiles > 0 {
@@ -952,7 +952,7 @@ func (p *restoreProgressBar) Update(status restic.RestoreStatus) {
 	if status.TotalFiles > 0 {
 		p.totalFiles = status.TotalFiles
 	}
-	if status.FilesRestored > 0 || status.PercentDone >= 1 {
+	if status.FilesRestored > 0 {
 		p.filesRestored = status.FilesRestored
 	}
 	if status.PercentDone >= 1 && p.totalFiles > 0 {
