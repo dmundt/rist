@@ -875,8 +875,10 @@ func updateRepo(repoID string, mutate func(*config.Repo) error, onSuccess func()
 }
 
 type backupProgressBar struct {
-	out io.Writer
-	bar *bargo.Bar
+	out        io.Writer
+	bar        *bargo.Bar
+	filesDone  uint64
+	totalFiles uint64
 }
 
 func newBackupProgressBar(out io.Writer) *backupProgressBar {
@@ -892,10 +894,24 @@ func (p *backupProgressBar) Update(status restic.BackupStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = bargo.New(bargo.WithCarriageReturn(true), bargo.WithClamp(true))
+		p.bar = bargo.New(
+			bargo.WithCarriageReturn(true),
+			bargo.WithClamp(true),
+			bargo.WithHeadRune('>'),
+		)
 	}
 
-	suffix := fmt.Sprintf("%d/%d files", status.FilesDone, status.TotalFiles)
+	if status.TotalFiles > 0 {
+		p.totalFiles = status.TotalFiles
+	}
+	if status.FilesDone > 0 {
+		p.filesDone = status.FilesDone
+	}
+	if status.PercentDone >= 1 && p.totalFiles > 0 {
+		p.filesDone = p.totalFiles
+	}
+
+	suffix := fmt.Sprintf("%d/%d files", p.filesDone, p.totalFiles)
 	_, _ = p.bar.WriteToWithText(p.out, status.PercentDone*100, 24, suffix)
 }
 
@@ -907,8 +923,10 @@ func (p *backupProgressBar) Finish() {
 }
 
 type restoreProgressBar struct {
-	out io.Writer
-	bar *bargo.Bar
+	out           io.Writer
+	bar           *bargo.Bar
+	filesRestored uint64
+	totalFiles    uint64
 }
 
 func newRestoreProgressBar(out io.Writer) *restoreProgressBar {
@@ -924,10 +942,24 @@ func (p *restoreProgressBar) Update(status restic.RestoreStatus) {
 		return
 	}
 	if p.bar == nil {
-		p.bar = bargo.New(bargo.WithCarriageReturn(true), bargo.WithClamp(true))
+		p.bar = bargo.New(
+			bargo.WithCarriageReturn(true),
+			bargo.WithClamp(true),
+			bargo.WithHeadRune('>'),
+		)
 	}
 
-	suffix := fmt.Sprintf("%d/%d files", status.FilesRestored, status.TotalFiles)
+	if status.TotalFiles > 0 {
+		p.totalFiles = status.TotalFiles
+	}
+	if status.FilesRestored > 0 {
+		p.filesRestored = status.FilesRestored
+	}
+	if status.PercentDone >= 1 && p.totalFiles > 0 {
+		p.filesRestored = p.totalFiles
+	}
+
+	suffix := fmt.Sprintf("%d/%d files", p.filesRestored, p.totalFiles)
 	_, _ = p.bar.WriteToWithText(p.out, status.PercentDone*100, 24, suffix)
 }
 
