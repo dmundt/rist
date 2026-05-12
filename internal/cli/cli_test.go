@@ -526,6 +526,40 @@ func TestCommandBranchHelpers(t *testing.T) {
 	restore.Finish()
 }
 
+func TestBackupProgressBarRetainsFileProgressOnFinalStatus(t *testing.T) {
+	var out bytes.Buffer
+	bar := newBackupProgressBar(&out)
+	bar.Update(restic.BackupStatus{
+		PercentDone: 0.3,
+		FilesDone:   3,
+		TotalFiles:  10,
+	})
+	bar.Update(restic.BackupStatus{
+		PercentDone: 1,
+	})
+
+	if !strings.Contains(out.String(), "10/10 files") {
+		t.Fatalf("expected final backup progress suffix in output, got %q", out.String())
+	}
+}
+
+func TestRestoreProgressBarRetainsFileProgressOnFinalStatus(t *testing.T) {
+	var out bytes.Buffer
+	bar := newRestoreProgressBar(&out)
+	bar.Update(restic.RestoreStatus{
+		PercentDone:   0.5,
+		FilesRestored: 4,
+		TotalFiles:    8,
+	})
+	bar.Update(restic.RestoreStatus{
+		PercentDone: 1,
+	})
+
+	if !strings.Contains(out.String(), "8/8 files") {
+		t.Fatalf("expected final restore progress suffix in output, got %q", out.String())
+	}
+}
+
 func TestRepoAddRemoveAndRestorePasswordErrorBranches(t *testing.T) {
 	setupTestEnvironment(t)
 	var out bytes.Buffer
